@@ -201,6 +201,7 @@ void filter_pinned_moves(struct Position pos, struct MoveList *list)
         bitboard occ = occupied(pos);
 
         bitboard candidates = queen_attacks(ksq, pos.white & occ) & pos.white;
+        if (!candidates) return;
 
         bitboard bishops = extract(pos, Bishop) &~ pos.white;
         bitboard rooks   = extract(pos, Rook)   &~ pos.white;
