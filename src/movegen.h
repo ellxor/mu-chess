@@ -184,13 +184,12 @@ void generate_king_moves(struct Position pos, struct MoveList *list)
 
         // castling
         bitboard castle = extract(pos, Castle) & RANK1;
-        castle &= rook_attacks(sq, occ);
 
-        static const bitboard KATTK = 0b01110000;
-        static const bitboard QATTK = 0b00011100;
+        static const bitboard KATTK = 0b01110000, KOCC = 0b01100000;
+        static const bitboard QATTK = 0b00011100, QOCC = 0b00001110;
 
-        if (castle & 0x01 && !(attacked & QATTK)) append(list, (struct Move) { E1, C1, King, true });
-        if (castle & 0x80 && !(attacked & KATTK)) append(list, (struct Move) { E1, G1, King, true });
+        if (castle & (1 << A1) && !(occ & QOCC) && !(attacked & QATTK)) append(list, (struct Move) { E1, C1, King, true });
+        if (castle & (1 << H1) && !(occ & KOCC) && !(attacked & KATTK)) append(list, (struct Move) { E1, G1, King, true });
 }
 
 
