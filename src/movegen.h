@@ -36,9 +36,9 @@ void generate_partial_pawn_moves(bitboard mask, square shift, bool promotion, st
 
 
 static inline
-void generate_pawn_moves(struct Position pos, bitboard targets, struct MoveList *list)
+void generate_pawn_moves(struct Position pos, bitboard targets, bitboard filter, struct MoveList *list)
 {
-        bitboard pawns = extract(pos, Pawn) & pos.white;
+        bitboard pawns = extract(pos, Pawn) & pos.white & filter;
         bitboard occ   = occupied(pos);
         bitboard enemy = occ ^ pos.white;
 
@@ -81,9 +81,9 @@ bitboard generic_attacks(piece T, square sq, bitboard occ)
 
 
 static inline
-void generate_piece_moves(piece T, struct Position pos, bitboard targets, struct MoveList *list)
+void generate_piece_moves(piece T, struct Position pos, bitboard targets, bitboard filter, struct MoveList *list)
 {
-        bitboard pieces = extract(pos, T) & pos.white;
+        bitboard pieces = extract(pos, T) & pos.white & filter;
         bitboard occ    = occupied(pos);
 
         while (pieces) {
@@ -195,14 +195,8 @@ void generate_king_moves(struct Position pos, struct MoveList *list)
 
 
 static inline
-void filter_pinned_moves(struct Position pos, struct MoveList *list)
+void filter_pinned_moves(struct Position pos, square king, struct MoveList *list)
 {
-        square ksq = lsb(extract(pos, King) & pos.white);
-        bitboard occ = occupied(pos);
-
-        bitboard candidates = queen_attacks(ksq, pos.white & occ) & pos.white;
-        if (!candidates) return;
-
         bitboard bishops = extract(pos, Bishop) &~ pos.white;
         bitboard rooks   = extract(pos, Rook)   &~ pos.white;
         bitboard queens  = extract(pos, Queen)  &~ pos.white;
@@ -210,6 +204,7 @@ void filter_pinned_moves(struct Position pos, struct MoveList *list)
         bishops |= queens;
         rooks   |= queens;
 
+        bitboard occ = occupied(pos);
         bitboard en_passant = pos.white &~ occ;
 
         unsigned count = list->count;
@@ -225,14 +220,11 @@ void filter_pinned_moves(struct Position pos, struct MoveList *list)
                         mask |= south(dst & en_passant);
                 }
 
-                if (mask & candidates) {
-                        bitboard nocc = (occ & ~mask) | dst;
-                        bitboard check = (bishops &~ dst & bishop_attacks(ksq, nocc))
-                                       | (rooks &~ dst & rook_attacks(ksq, nocc));
+                bitboard nocc = (occ & ~mask) | dst;
+                bitboard check = (bishops &~ dst & bishop_attacks(king, nocc))
+                               | (rooks &~ dst & rook_attacks(king, nocc));
 
-                        if (check) continue;
-                }
-
+                if (check) continue;
                 append(list, move);
         }
 }
@@ -252,12 +244,23 @@ struct MoveList generate_moves(struct Position pos)
         bitboard targets = ~(occupied(pos) & pos.white);
         if (checkers) targets &= checkers | line_between(checkers, king);
 
-        generate_pawn_moves(pos, targets, &list);
-        generate_piece_moves(Knight, pos, targets, &list);
-        generate_piece_moves(Bishop, pos, targets, &list);
-        generate_piece_moves(Rook,   pos, targets, &list);
-        generate_piece_moves(Queen,  pos, targets, &list);
-        filter_pinned_moves(pos, &list);
+        square ksq = lsb(king);
+        bitboard occ = occupied(pos);
+        bitboard pinned = queen_attacks(ksq, pos.white & occ) & pos.white;
+
+        generate_pawn_moves(pos, targets, pinned, &list);
+        generate_piece_moves(Knight, pos, targets, pinned, &list);
+        generate_piece_moves(Bishop, pos, targets, pinned, &list);
+        generate_piece_moves(Rook,   pos, targets, pinned, &list);
+        generate_piece_moves(Queen,  pos, targets, pinned, &list);
+        filter_pinned_moves(pos, ksq, &list);
+
+        generate_pawn_moves(pos, targets, ~pinned, &list);
+        generate_piece_moves(Knight, pos, targets, ~pinned, &list);
+        generate_piece_moves(Bishop, pos, targets, ~pinned, &list);
+        generate_piece_moves(Rook,   pos, targets, ~pinned, &list);
+        generate_piece_moves(Queen,  pos, targets, ~pinned, &list);
+
 king_moves:
         generate_king_moves(pos, &list);
         return list;

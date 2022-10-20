@@ -4,15 +4,15 @@ This is a simple chess implementation using compressed bitboards to store a ches
 
 **Results:**
 ```
-startpos        119060324       (259 Mnps)
-kiwipete        193690690       (324 Mnps)
-position 3      178633661       (230 Mnps)
-position 4      706045033       (321 Mnps)
-rotated 4       706045033       (321 Mnps)
-position 5       89941194       (302 Mnps)
-position 6      164075551       (323 Mnps)
+startpos        119060324       (287 Mnps)
+kiwipete        193690690       (391 Mnps)
+position 3      178633661       (236 Mnps)
+position 4      706045033       (403 Mnps)
+rotated 4       706045033       (403 Mnps)
+position 5       89941194       (363 Mnps)
+position 6      164075551       (417 Mnps)
 
-Average: 297 Mnps
+Average: 358 Mnps
 ```
 
 **TODO:**
