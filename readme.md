@@ -16,5 +16,5 @@ Average: 359 Mnps
 ```
 
 **TODO:**
-- [ ] Compress `bitbase.c` using raw string literals; note this already works with clang (C++) but not gcc.
+- [x] Compress `bitbase.c` using raw string literals; note this already works with clang (C++) but not gcc.
 - [ ] Add fancy magic bitboards to support processors without a fast BMI2 implementation
