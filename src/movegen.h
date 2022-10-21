@@ -305,7 +305,7 @@ struct Position make_move(struct Position pos, struct Move move)
         }
 
         if (move.piece == King)
-                pos.x &= ~(extract(pos, Castle) & RANK1);
+                pos.x ^= extract(pos, Castle) & RANK1;
 
         bitboard black = occupied(pos) &~ pos.white;
 
