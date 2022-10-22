@@ -237,6 +237,7 @@ struct MoveList generate_moves(struct Position pos)
         bitboard checkers = enemy_checks(pos);
         bitboard king = extract(pos, King) & pos.white;
 
+        // if in check from more than one piece, can only move king
         if (checkers & (checkers - 1))
                 goto king_moves;
 
@@ -304,6 +305,7 @@ struct Position make_move(struct Position pos, struct Move move)
                 set_square(&pos, mid, Rook);
         }
 
+        // remove castling rights
         if (move.piece == King)
                 pos.x ^= extract(pos, Castle) & RANK1;
 
