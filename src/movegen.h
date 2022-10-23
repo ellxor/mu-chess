@@ -236,12 +236,11 @@ struct MoveList generate_moves(struct Position pos)
         bitboard checkers = enemy_checks(pos);
         bitboard king = extract(pos, King) & pos.white;
 
-        // if in check from more than one piece, can only move king
-        if (checkers & (checkers - 1))
-                goto king_moves;
-
         bitboard targets = ~(occupied(pos) & pos.white);
-        if (checkers) targets &= checkers | line_between(checkers, king);
+
+        // if in check from more than one piece, can only move king
+        if (checkers)
+                targets &= (popcount(checkers) == 1) ? checkers | line_between(checkers, king) : 0;
 
         square ksq = lsb(king);
         bitboard pinned = queen_attacks(lsb(king), occupied(pos)) & pos.white;
@@ -263,9 +262,8 @@ struct MoveList generate_moves(struct Position pos)
         generate_piece_moves(Bishop, pos, targets, ~pinned, &list);
         generate_piece_moves(Rook,   pos, targets, ~pinned, &list);
         generate_piece_moves(Queen,  pos, targets, ~pinned, &list);
-
-king_moves:
         generate_king_moves(pos, &list);
+
         return list;
 }
 
