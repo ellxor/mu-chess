@@ -40,10 +40,7 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard filter,
 {
         bitboard pawns = extract(pos, Pawn) & pos.white & filter;
         bitboard occ   = occupied(pos);
-        bitboard enemy = occ ^ pos.white;
-
-        bitboard en_passant = pos.white &~ occ;
-        targets |= north(targets) & en_passant;
+        bitboard enemy = occ &~ pos.white;
 
         bitboard single_move = north(pawns) &~ occ;
         bitboard double_move = north(single_move & RANK3) &~ occ;
@@ -64,6 +61,29 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard filter,
         generate_partial_pawn_moves(double_move,           N+N, false, list);
         generate_partial_pawn_moves(east_capture &~ RANK8, N+E, false, list);
         generate_partial_pawn_moves(west_capture &~ RANK8, N+W, false, list);
+
+        // en-passant
+        bitboard en_passant = pos.white &~ occ & north(targets);
+        bitboard candidates = pawns & south(east(en_passant) | west(en_passant));
+
+        bitboard rooks  = extract(pos, Rook)  &~ pos.white;
+        bitboard queens = extract(pos, Queen) &~ pos.white;
+        bitboard king   = extract(pos, King)  &  pos.white;
+
+        rooks |= queens;
+        rooks &= RANK5;
+
+        while (candidates) {
+                bitboard sq = lsb(candidates);
+                bitboard dst = lsb(en_passant);
+
+                bitboard mask = (1ULL << sq) | south(en_passant);
+
+                if ((rooks & rook_attacks(lsb(king), occ &~ mask)) == 0)
+                        append(list, (struct Move) { sq, dst, Pawn });
+
+                candidates &= candidates - 1;
+        }
 }
 
 
@@ -199,12 +219,10 @@ void filter_pinned_moves(struct Position pos, square king, struct MoveList *list
         bitboard bishops = extract(pos, Bishop) &~ pos.white;
         bitboard rooks   = extract(pos, Rook)   &~ pos.white;
         bitboard queens  = extract(pos, Queen)  &~ pos.white;
+        bitboard occ     = occupied(pos);
 
         bishops |= queens;
         rooks   |= queens;
-
-        bitboard occ = occupied(pos);
-        bitboard en_passant = pos.white &~ occ;
 
         unsigned count = list->count;
         list->count = 0;
@@ -214,10 +232,6 @@ void filter_pinned_moves(struct Position pos, square king, struct MoveList *list
 
                 bitboard mask = 1ULL << move.start;
                 bitboard dst = 1ULL << move.end;
-
-                if (move.piece == Pawn) {
-                        mask |= south(dst & en_passant);
-                }
 
                 bitboard nocc = (occ & ~mask) | dst;
                 bitboard check = (bishops &~ dst & bishop_attacks(king, nocc))
@@ -245,8 +259,8 @@ struct MoveList generate_moves(struct Position pos)
         if (checkers) targets &= checkers | line_between(checkers, king);
 
         square ksq = lsb(king);
-        bitboard occ = occupied(pos);
-        bitboard pinned = queen_attacks(ksq, pos.white & occ) & pos.white;
+        bitboard pinned = queen_attacks(lsb(king), occupied(pos)) & pos.white;
+        pinned &= enemy_attacks(pos);
 
         generate_pawn_moves(pos, targets, pinned, &list);
         generate_piece_moves(Knight, pos, targets, pinned, &list);
