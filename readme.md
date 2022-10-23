@@ -4,7 +4,7 @@ This is a simple chess implementation using compressed bitboards to store a ches
 
 **Results:**
 ```
-startpos        119060324       (320 Mnps)
+startpos        119060324       (324 Mnps)
 kiwipete        193690690       (434 Mnps)
 position 3      178633661       (262 Mnps)
 position 4      706045033       (438 Mnps)
