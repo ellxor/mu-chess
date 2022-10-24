@@ -60,10 +60,6 @@ static inline bitboard rook_attacks(square sq, bitboard occ) {
         return rook[sq].attacks[pext(occ, rook[sq].mask)];
 }
 
-static inline bitboard queen_attacks(square sq, bitboard occ) {
-        return bishop_attacks(sq, occ) | rook_attacks(sq, occ);
-}
-
 
 static inline
 bitboard line_between(bitboard a, bitboard b)

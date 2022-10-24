@@ -74,7 +74,7 @@ bitboard generic_attacks(piece T, square sq, bitboard occ)
                 case Knight: return knight_attacks(sq);
                 case Bishop: return bishop_attacks(sq, occ);
                 case Rook:   return rook_attacks(sq, occ);
-                case Queen:  return queen_attacks(sq, occ);
+                case Queen:  return bishop_attacks(sq, occ) | rook_attacks(sq, occ);
                 default:     return 0;
         }
 }
@@ -194,6 +194,40 @@ void generate_king_moves(struct Position pos, struct MoveList *list)
 
 
 static inline
+bitboard generate_pinned(struct Position pos)
+{
+        bitboard bishops = extract(pos, Bishop) &~ pos.white;
+        bitboard rooks   = extract(pos, Rook)   &~ pos.white;
+        bitboard queens  = extract(pos, Queen)  &~ pos.white;
+
+        bishops |= queens;
+        rooks   |= queens;
+
+        bitboard king = extract(pos, King) & pos.white;
+        bitboard occ = occupied(pos);
+        bitboard en_passant = pos.white &~ occ;
+
+        square sq = lsb(king);
+
+        bishops &= bishop_attacks(sq, bishops);
+        rooks   &= rook_attacks(sq, rooks);
+
+        bitboard pinned = 0;
+        bitboard candidates = bishops | rooks;
+
+        while (candidates) {
+                bitboard bit = candidates & -candidates;
+                bitboard line = line_between(bit, king) & occ;
+                line &= ~south(en_passant);
+                if (popcount(line) == 1) pinned |= line;
+                candidates &= candidates - 1;
+        }
+
+        return pinned;
+}
+
+
+static inline
 void filter_pinned_moves(struct Position pos, square king, struct MoveList *list)
 {
         bitboard bishops = extract(pos, Bishop) &~ pos.white;
@@ -237,25 +271,18 @@ struct MoveList generate_moves(struct Position pos)
         bitboard king = extract(pos, King) & pos.white;
 
         bitboard targets = ~(occupied(pos) & pos.white);
+        bitboard pinned = generate_pinned(pos);
 
         // if in check from more than one piece, can only move king
         if (checkers)
                 targets &= (popcount(checkers) == 1) ? checkers | line_between(checkers, king) : 0;
-
-        square ksq = lsb(king);
-        bitboard pinned = queen_attacks(lsb(king), occupied(pos)) & pos.white;
-        pinned &= enemy_attacks(pos);
-
-        bitboard pawns = extract(pos, Pawn) & pos.white;
-        bitboard en_passant = pos.white &~ occupied(pos);
-        pinned |= pawns & south(east(en_passant) | west(en_passant));
 
         generate_pawn_moves(pos, targets, pinned, &list);
         generate_piece_moves(Knight, pos, targets, pinned, &list);
         generate_piece_moves(Bishop, pos, targets, pinned, &list);
         generate_piece_moves(Rook,   pos, targets, pinned, &list);
         generate_piece_moves(Queen,  pos, targets, pinned, &list);
-        filter_pinned_moves(pos, ksq, &list);
+        filter_pinned_moves(pos, lsb(king), &list);
 
         generate_pawn_moves(pos, targets, ~pinned, &list);
         generate_piece_moves(Knight, pos, targets, ~pinned, &list);
