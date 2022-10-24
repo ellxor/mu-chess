@@ -203,21 +203,18 @@ bitboard generate_pinned(struct Position pos)
         bishops |= queens;
         rooks   |= queens;
 
-        bitboard king = extract(pos, King) & pos.white;
+        square king = lsb(extract(pos, King) & pos.white);
         bitboard occ = occupied(pos);
         bitboard en_passant = pos.white &~ occ;
 
-        square sq = lsb(king);
-
-        bishops &= bishop_attacks(sq, bishops);
-        rooks   &= rook_attacks(sq, rooks);
+        bishops &= bishop_attacks(king, bishops);
+        rooks   &= rook_attacks(king, rooks);
 
         bitboard pinned = 0;
         bitboard candidates = bishops | rooks;
 
         while (candidates) {
-                bitboard bit = candidates & -candidates;
-                bitboard line = line_between(bit, king) & occ;
+                bitboard line = line_between[king][lsb(candidates)] & occ;
                 line &= ~south(en_passant);
                 if (popcount(line) == 1) pinned |= line;
                 candidates &= candidates - 1;
@@ -268,21 +265,21 @@ struct MoveList generate_moves(struct Position pos)
         struct MoveList list = {.count = 0};
 
         bitboard checkers = enemy_checks(pos);
-        bitboard king = extract(pos, King) & pos.white;
+        square king = lsb(extract(pos, King) & pos.white);
 
         bitboard targets = ~(occupied(pos) & pos.white);
         bitboard pinned = generate_pinned(pos);
 
         // if in check from more than one piece, can only move king
         if (checkers)
-                targets &= (popcount(checkers) == 1) ? checkers | line_between(checkers, king) : 0;
+                targets &= (popcount(checkers) == 1) ? checkers | line_between[lsb(checkers)][king] : 0;
 
         generate_pawn_moves(pos, targets, pinned, &list);
         generate_piece_moves(Knight, pos, targets, pinned, &list);
         generate_piece_moves(Bishop, pos, targets, pinned, &list);
         generate_piece_moves(Rook,   pos, targets, pinned, &list);
         generate_piece_moves(Queen,  pos, targets, pinned, &list);
-        filter_pinned_moves(pos, lsb(king), &list);
+        filter_pinned_moves(pos, king, &list);
 
         generate_pawn_moves(pos, targets, ~pinned, &list);
         generate_piece_moves(Knight, pos, targets, ~pinned, &list);

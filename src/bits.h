@@ -49,6 +49,8 @@ static inline bitboard extract(struct Position pos, piece T)
 extern const bitboard *bitbase;
 static struct { bitboard mask; const bitboard *attacks; } bishop[64], rook[64];
 
+static bitboard line_between[64][64];
+
 static inline bitboard knight_attacks(square sq) { return bitbase[sq]; }
 static inline bitboard   king_attacks(square sq) { return bitbase[sq + 64]; }
 
@@ -62,7 +64,7 @@ static inline bitboard rook_attacks(square sq, bitboard occ) {
 
 
 static inline
-bitboard line_between(bitboard a, bitboard b)
+bitboard __line_between(bitboard a, bitboard b)
 {
         square sqa = lsb(a);
         square sqb = lsb(b);
@@ -91,4 +93,8 @@ static inline void bitbase_init(void)
                 rook[sq].attacks = bitbase + index;
                 index += 1 << popcount(rook[sq].mask);
         }
+
+        for (square i = 0; i < 64; i++)
+                for (square j = 0; j < 64; j++)
+                        line_between[i][j] = __line_between(1ULL << i, 1ULL << j);
 }
