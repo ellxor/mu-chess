@@ -231,7 +231,6 @@ bitboard generate_pinned(struct Position pos)
 
         square king = lsb(extract(pos, King) & pos.white);
         bitboard occ = occupied(pos);
-        // bitboard en_passant = pos.white &~ occ;
 
         bishops &= bishop_attacks(king, bishops);
         rooks   &= rook_attacks(king, rooks);
