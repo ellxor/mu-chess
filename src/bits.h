@@ -50,6 +50,7 @@ extern const bitboard *bitbase;
 static struct { bitboard mask; const bitboard *attacks; } bishop[64], rook[64];
 
 static bitboard line_between[64][64];
+static bitboard line_connecting[64][64];
 
 static inline bitboard knight_attacks(square sq) { return bitbase[sq]; }
 static inline bitboard   king_attacks(square sq) { return bitbase[sq + 64]; }
@@ -79,6 +80,22 @@ bitboard __line_between(bitboard a, bitboard b)
         return line;
 }
 
+static inline
+bitboard __line_connecting(bitboard a, bitboard b)
+{
+        square sqa = lsb(a);
+        square sqb = lsb(b);
+
+        bitboard diag = a | bishop_attacks(sqa, 0);
+        bitboard orth = a | rook_attacks(sqa, 0);
+
+        bitboard line = 0;
+        if (diag & b) line |= b | (bishop_attacks(sqb, 0) & diag);
+        if (orth & b) line |= b | (rook_attacks(sqb, 0)   & orth);
+
+        return line;
+}
+
 
 static inline void bitbase_init(void)
 {
@@ -94,7 +111,10 @@ static inline void bitbase_init(void)
                 index += 1 << popcount(rook[sq].mask);
         }
 
-        for (square i = 0; i < 64; i++)
-                for (square j = 0; j < 64; j++)
+        for (square i = 0; i < 64; i++) {
+                for (square j = 0; j < 64; j++) {
                         line_between[i][j] = __line_between(1ULL << i, 1ULL << j);
+                        line_connecting[i][j] = __line_connecting(1ULL << i, 1ULL << j);
+                }
+        }
 }
