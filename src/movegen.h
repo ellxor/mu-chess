@@ -1,7 +1,7 @@
 #pragma once
 #include "bits.h"
 
-enum { MAX_MOVE_COUNT = 128 };
+enum { MAX_MOVE_COUNT = 80 };
 
 struct MoveList {
         struct Move moves[MAX_MOVE_COUNT];
