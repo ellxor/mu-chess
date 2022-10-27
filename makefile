@@ -1,19 +1,14 @@
-CC     ?= gcc
-CFLAGS ?= -O3 -march=native -s -Wall -Wextra -Wno-missing-field-initializers -Wno-pointer-sign
-SRC     = src/main.c src/bitbase.c
+CC       = clang
+CFLAGS   = -O3 -march=native -s -o perft
+WARNINGS = -Wall -Wextra -Wno-missing-field-initializers -Wno-pointer-sign -Wno-invalid-source-encoding
+SRC      = src/main.c -xc++ src/bitbase.c
 
 default:
-	$(CC) $(CFLAGS) $(SRC)
-
-pgo:
-	$(CC) $(CFLAGS) $(SRC) -fprofile-generate
-	./a.out
-	$(CC) $(CFLAGS) $(SRC) -fprofile-use
+	$(CC) $(CFLAGS) $(WARNINGS) $(SRC)
 
 clang-pgo:
-	sed 's/"\\r"/ "\\r" /g' src/bitbase.c > src/bitbase.cc
-	clang src/main.c src/bitbase.cc -O3 -march=native -w -fprofile-generate
-	./a.out
+	clang $(CFLAGS) $(WARNINGS) $(SRC) -fprofile-generate
+	./perft
 	llvm-profdata merge *.profraw -o default.profdata
-	clang src/main.c src/bitbase.cc -O3 -march=native -w -fprofile-use
-	rm -rf *.prof* src/bitbase.cc
+	clang $(CFLAGS) $(WARNINGS) $(SRC) -fprofile-use
+	rm -rf *.profraw default.profdata
