@@ -14,7 +14,3 @@ position 6      164075551       (523 Mnps)
 
 Average: 479 Mnps
 ```
-
-**TODO:**
-- [x] Compress `bitbase.c` using raw string literals; note this already works with clang (C++) but not gcc.
-- [ ] Add fancy magic bitboards to support processors without a fast BMI2 implementation
