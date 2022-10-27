@@ -10,7 +10,7 @@ enum { None, Pawn, Knight, Bishop, Rook, Castle, Queen, King };
 typedef uint8_t piece;
 
 struct Position { bitboard x, y, z, white; };
-struct Move { uint16_t start: 6, end: 6, piece: 3, castling: 1; };
+struct Move { square start, end; piece piece; bool castling; };
 
 enum { N = 8, E = 1, S = -N, W = -E };
 enum { A1 = 0, C1 = 2, E1 = 4, G1 = 6, H1 = 7 };
