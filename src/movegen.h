@@ -240,7 +240,7 @@ bitboard generate_pinned(struct Position pos)
 
         while (candidates) {
                 bitboard line = line_between[king][lsb(candidates)] & occ;
-                if (popcount(line) == 1) pinned |= line;
+                pinned |= msb(line) &- line;
                 candidates &= candidates - 1;
         }
 
