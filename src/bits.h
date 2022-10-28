@@ -27,8 +27,8 @@ static inline bitboard  east(bitboard bb) { return (bb &~ HFILE) << 1; }
 static inline bitboard  west(bitboard bb) { return (bb &~ AFILE) >> 1; }
 static inline bitboard bswap(bitboard bb) { return __builtin_bswap64(bb); }
 
-static inline square        lsb(bitboard bb) { return __builtin_ctzll(bb); }
-static inline bitboard      msb(bitboard bb) { return 0x8000000000000000u >> __builtin_clzll(bb); }
+static inline square        lsb(bitboard bb) { return _tzcnt_u64(bb); }
+static inline bitboard      msb(bitboard bb) { return 0x8000000000000000u >> _lzcnt_u64(bb); }
 static inline unsigned popcount(bitboard bb) { return __builtin_popcountll(bb); }
 static inline bitboard     pext(bitboard a, bitboard b) { return _pext_u64(a, b); }
 
