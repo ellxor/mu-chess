@@ -6,6 +6,9 @@ SRC      = src/main.c -xc++ src/bitbase.c
 default:
 	$(CC) $(CFLAGS) $(WARNINGS) $(SRC)
 
+debug:
+	$(CC) $(CFLAGS) $(WARNINGS) $(SRC) -fsanitize=undefined
+
 clang-pgo:
 	clang $(CFLAGS) $(WARNINGS) $(SRC) -fprofile-generate
 	./perft
