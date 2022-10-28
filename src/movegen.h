@@ -27,12 +27,12 @@ void generate_partial_pawn_moves(bitboard mask, square shift, bool promotion, bo
                 }
 
                 if (promotion) {
-                        append(list, (struct Move) { sq, dst, Knight });
-                        append(list, (struct Move) { sq, dst, Bishop });
-                        append(list, (struct Move) { sq, dst, Rook   });
-                        append(list, (struct Move) { sq, dst, Queen  });
+                        append(list, (struct Move) { sq, dst, Knight, false });
+                        append(list, (struct Move) { sq, dst, Bishop, false });
+                        append(list, (struct Move) { sq, dst, Rook  , false });
+                        append(list, (struct Move) { sq, dst, Queen , false });
                 } else {
-                        append(list, (struct Move) { sq, dst, Pawn });
+                        append(list, (struct Move) { sq, dst, Pawn, false });
                 }
 
                 mask &= mask - 1;
@@ -118,7 +118,7 @@ void generate_piece_moves(piece T, struct Position pos, bitboard targets, bitboa
 
                 while (attacks) {
                         square dst = lsb(attacks);
-                        append(list, (struct Move) { sq, dst, T });
+                        append(list, (struct Move) { sq, dst, T, false });
                         attacks &= attacks - 1;
                 }
 
@@ -204,7 +204,7 @@ void generate_king_moves(struct Position pos, struct MoveList *list)
 
         while (attacks) {
                 square dst = lsb(attacks);
-                append(list, (struct Move) { sq, dst, King });
+                append(list, (struct Move) { sq, dst, King, false });
                 attacks &= attacks - 1;
         }
 

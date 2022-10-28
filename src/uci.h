@@ -14,7 +14,7 @@ static const piece lookup[0x80] =
 };
 
 static inline
-struct Position parse_fen(const unsigned char *fen)
+struct Position parse_fen(const char *fen)
 {
         struct Position pos = {0};
         bitboard white = 0, black = 0;

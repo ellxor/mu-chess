@@ -24,7 +24,7 @@ unsigned perft(struct Position pos, unsigned depth)
 
 
 struct UnitTest {
-        const unsigned char *name, *fen;
+        const char *name, *fen;
         unsigned depth;
 };
 
