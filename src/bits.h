@@ -1,13 +1,12 @@
 #pragma once
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <x86intrin.h>
 
 typedef uint8_t square;
 typedef uint64_t bitboard;
 
-enum { None, Pawn, Knight, Bishop, Rook, Castle, Queen, King };
-typedef uint8_t piece;
+typedef enum : uint8_t { None, Pawn, Knight, Bishop, Rook, Castle, Queen, King } piece;
 
 struct Position { bitboard x, y, z, white; };
 struct Move { square start, end; piece piece; bool castling; };
@@ -49,14 +48,19 @@ bitboard extract(struct Position pos, piece T)
         return bb;
 }
 
-extern const bitboard *bitbase;
+
+#define INCBIN_STYLE INCBIN_STYLE_SNAKE
+#define INCBIN_PREFIX
+#include "incbin.h"
+
+INCBIN(bitboard, bitbase, "data/bitbase.bin");
 static struct { bitboard mask; const bitboard *attacks; } bishop[64], rook[64];
 
 static bitboard line_between[64][64];
 static bitboard line_connecting[64][64];
 
-static inline bitboard knight_attacks(square sq) { return bitbase[sq]; }
-static inline bitboard   king_attacks(square sq) { return bitbase[sq + 64]; }
+static inline bitboard knight_attacks(square sq) { return bitbase_data[sq]; }
+static inline bitboard   king_attacks(square sq) { return bitbase_data[sq + 64]; }
 
 static inline bitboard bishop_attacks(square sq, bitboard occ) {
         return bishop[sq].attacks[pext(occ, bishop[sq].mask)];
@@ -106,12 +110,12 @@ void bitbase_init(void)
         size_t index = 128;
 
         for (square sq = 0; sq < 64; sq++) {
-                bishop[sq].mask = bitbase[index++];
-                bishop[sq].attacks = bitbase + index;
+                bishop[sq].mask = bitbase_data[index++];
+                bishop[sq].attacks = bitbase_data + index;
                 index += 1 << popcount(bishop[sq].mask);
 
-                rook[sq].mask = bitbase[index++];
-                rook[sq].attacks = bitbase + index;
+                rook[sq].mask = bitbase_data[index++];
+                rook[sq].attacks = bitbase_data + index;
                 index += 1 << popcount(rook[sq].mask);
         }
 

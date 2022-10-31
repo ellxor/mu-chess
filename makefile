@@ -1,7 +1,7 @@
 CC       = clang
-CFLAGS   = -O3 -march=native -s -o perft
+CFLAGS   = -O3 -march=native -fexperimental-new-pass-manager -s -o perft
 WARNINGS = -Wall -Wextra -Wno-invalid-source-encoding
-SRC      = src/main.c -xc++ src/bitbase.c
+SRC      = src/main.c
 
 default:
 	$(CC) $(CFLAGS) $(WARNINGS) $(SRC)
@@ -10,8 +10,8 @@ debug:
 	$(CC) $(CFLAGS) $(WARNINGS) $(SRC) -fsanitize=undefined
 
 clang-pgo:
-	clang $(CFLAGS) $(WARNINGS) $(SRC) -fprofile-generate
+	$(CC) $(CFLAGS) $(WARNINGS) $(SRC) -fprofile-generate
 	./perft
 	llvm-profdata merge *.profraw -o default.profdata
-	clang $(CFLAGS) $(WARNINGS) $(SRC) -fprofile-use
+	$(CC) $(CFLAGS) $(WARNINGS) $(SRC) -fprofile-use
 	rm -rf *.profraw default.profdata
