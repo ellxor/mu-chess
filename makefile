@@ -1,5 +1,5 @@
 CC       = clang
-CFLAGS   = -O3 -march=native -fexperimental-new-pass-manager -s -o perft
+CFLAGS   = -O3 -march=native -s -o perft
 WARNINGS = -Wall -Wextra -Wno-invalid-source-encoding
 SRC      = src/main.c
 
