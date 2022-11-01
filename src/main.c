@@ -61,7 +61,7 @@ int main()
                 float mnps = nodes / seconds / 1e6f;
                 avg += mnps;
 
-                printf("%s\t%9u\t(%3.0f Mnps)\n", tests[i].name, nodes, mnps);
+                printf("%s\t%9u\t(%4.0f Mnps)\n", tests[i].name, nodes, mnps);
         }
 
         printf("\nAverage: %.0f Mnps\n", avg / count);
