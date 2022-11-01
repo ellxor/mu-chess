@@ -142,6 +142,29 @@ void generate_piece_moves(piece T, struct Position pos, bitboard targets, bitboa
 
 
 static inline
+void generate_king_moves(struct Position pos, bitboard attacked, square king, struct MoveList *list)
+{
+        bitboard occ     = occupied(pos);
+        bitboard attacks = king_attacks(king) &~ attacked &~ (pos.white & occ);
+
+        while (attacks) {
+                square sq = lsb(attacks);
+                append(list, (struct Move) { king, sq, King, false });
+                attacks &= attacks - 1;
+        }
+
+        // castling
+        bitboard castle = extract(pos, Castle) & RANK1;
+
+        static const bitboard KATTK = 0b01110000, KOCC = 0b01100000;
+        static const bitboard QATTK = 0b00011100, QOCC = 0b00001110;
+
+        if (castle & (1 << A1) && !(occ & QOCC) && !(attacked & QATTK)) append(list, (struct Move) { E1, C1, King, true });
+        if (castle & (1 << H1) && !(occ & KOCC) && !(attacked & KATTK)) append(list, (struct Move) { E1, G1, King, true });
+}
+
+
+static inline
 bitboard enemy_attacks(struct Position pos, bitboard *out_checkers)
 {
         bitboard pawns   = extract(pos, Pawn)   &~ pos.white;
@@ -157,13 +180,13 @@ bitboard enemy_attacks(struct Position pos, bitboard *out_checkers)
         bitboard our_king = extract(pos, King) & pos.white;
         bitboard occ = occupied(pos) &~ our_king; // allow sliders to move through our king
 
-        bitboard attacked = 0;
+        bitboard attacked = 0, checks = 0;
 
         attacked |= south(east(pawns));
         attacked |= south(west(pawns));
         attacked |= king_attacks(lsb(king));
 
-        bitboard checks = pawns & north(east(our_king) | west(our_king));
+        checks |= pawns & north(east(our_king) | west(our_king));
         checks |= knights & knight_attacks(lsb(our_king));
 
         while (knights) {
@@ -187,29 +210,6 @@ bitboard enemy_attacks(struct Position pos, bitboard *out_checkers)
 
         *out_checkers = checks;
         return attacked;
-}
-
-
-static inline
-void generate_king_moves(struct Position pos, bitboard attacked, square king, struct MoveList *list)
-{
-        bitboard occ     = occupied(pos);
-        bitboard attacks = king_attacks(king) &~ attacked &~ (pos.white & occ);
-
-        while (attacks) {
-                square sq = lsb(attacks);
-                append(list, (struct Move) { king, sq, King, false });
-                attacks &= attacks - 1;
-        }
-
-        // castling
-        bitboard castle = extract(pos, Castle) & RANK1;
-
-        static const bitboard KATTK = 0b01110000, KOCC = 0b01100000;
-        static const bitboard QATTK = 0b00011100, QOCC = 0b00001110;
-
-        if (castle & (1 << A1) && !(occ & QOCC) && !(attacked & QATTK)) append(list, (struct Move) { E1, C1, King, true });
-        if (castle & (1 << H1) && !(occ & KOCC) && !(attacked & KATTK)) append(list, (struct Move) { E1, G1, King, true });
 }
 
 
@@ -249,9 +249,8 @@ struct MoveList generate_moves(struct Position pos)
 
         bitboard checkers;
         bitboard attacked = enemy_attacks(pos, &checkers);
-
-        bitboard targets = ~(occupied(pos) & pos.white);
-        bitboard pinned = generate_pinned(pos, king);
+        bitboard targets  = ~(pos.white & occupied(pos));
+        bitboard pinned   = generate_pinned(pos, king);
 
         // if in check from more than one piece, can only move king
         if (checkers)
