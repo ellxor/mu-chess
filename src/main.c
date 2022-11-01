@@ -1,5 +1,6 @@
 #include "bits.h"
 #include "movegen.h"
+#include "perft.h"
 #include "uci.h"
 
 #include <stdio.h>
@@ -9,6 +10,7 @@
 static inline
 unsigned perft(struct Position pos, unsigned depth)
 {
+        if (depth == 1) return count_moves(pos);
         struct MoveList list = generate_moves(pos);
         if (depth == 1) return list.count;
 
