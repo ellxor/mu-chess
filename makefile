@@ -1,6 +1,6 @@
 CC       = clang
 CFLAGS   = -O3 -march=native -s -o perft
-WARNINGS = -Wall -Wextra -Wno-invalid-source-encoding
+WARNINGS = -Wall -Wextra
 SRC      = src/main.c
 
 default:
