@@ -15,16 +15,11 @@ void append(struct MoveList *list, struct Move move) {
 
 
 static inline
-void generate_partial_pawn_moves(bitboard mask, square shift, bool promotion, bool pinned, square king, struct MoveList *list)
+void generate_partial_pawn_moves(bitboard mask, square shift, bool promotion, struct MoveList *list)
 {
         while (mask) {
                 square dst = lsb(mask);
                 square sq  = dst - shift;
-
-                if (pinned && !(line_connecting[king][sq] & mask &- mask)) {
-                        mask &= mask - 1;
-                        continue;
-                }
 
                 if (promotion) {
                         append(list, (struct Move) { sq, dst, Knight, false });
@@ -41,9 +36,9 @@ void generate_partial_pawn_moves(bitboard mask, square shift, bool promotion, bo
 
 
 static inline
-void generate_pawn_moves(struct Position pos, bitboard targets, bitboard filter, bool pinned, square king, struct MoveList *list)
+void generate_pawn_moves(struct Position pos, bitboard targets, bitboard pinned, square king, struct MoveList *list)
 {
-        bitboard pawns = extract(pos, Pawn) & pos.white & filter;
+        bitboard pawns = extract(pos, Pawn) & pos.white;
         bitboard occ   = occupied(pos);
         bitboard enemy = occ &~ pos.white;
 
@@ -64,25 +59,48 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard filter,
         targets |= en_passant & north(targets);
         enemy   |= en_passant;
 
+        pinned &= pawns;
+        pawns  &= ~pinned;
+        pinned &= ~rank(king);
+
         bitboard single_move = north(pawns) &~ occ;
         bitboard double_move = north(single_move & RANK3) &~ occ;
+
+        bitboard pinned_single_move = north(pinned) &~ occ;
+        bitboard pinned_double_move = north(pinned_single_move & RANK3) &~ occ;
 
         single_move &= targets;
         double_move &= targets;
 
+        pinned_single_move &= targets;
+        pinned_double_move &= targets;
+
         bitboard east_capture = north(east(pawns)) & enemy & targets;
         bitboard west_capture = north(west(pawns)) & enemy & targets;
 
+        bitboard pinned_east_capture = north(east(pinned)) & enemy & targets;
+        bitboard pinned_west_capture = north(west(pinned)) & enemy & targets;
+
+        pinned_east_capture &= bishop_attacks(king, 0);
+        pinned_west_capture &= bishop_attacks(king, 0);
+        pinned_single_move  &= file(king);
+        pinned_double_move  &= file(king);
+
+        single_move  |= pinned_single_move;
+        double_move  |= pinned_double_move;
+        east_capture |= pinned_east_capture;
+        west_capture |= pinned_west_capture;
+
         // promotions
-        generate_partial_pawn_moves(single_move  & RANK8, N,   true, pinned, king, list);
-        generate_partial_pawn_moves(east_capture & RANK8, N+E, true, pinned, king, list);
-        generate_partial_pawn_moves(west_capture & RANK8, N+W, true, pinned, king, list);
+        generate_partial_pawn_moves(single_move  & RANK8, N,   true, list);
+        generate_partial_pawn_moves(east_capture & RANK8, N+E, true, list);
+        generate_partial_pawn_moves(west_capture & RANK8, N+W, true, list);
 
         // non-promotions
-        generate_partial_pawn_moves(single_move  &~ RANK8, N,   false, pinned, king, list);
-        generate_partial_pawn_moves(double_move,           N+N, false, pinned, king, list);
-        generate_partial_pawn_moves(east_capture &~ RANK8, N+E, false, pinned, king, list);
-        generate_partial_pawn_moves(west_capture &~ RANK8, N+W, false, pinned, king, list);
+        generate_partial_pawn_moves(single_move  &~ RANK8, N,   false, list);
+        generate_partial_pawn_moves(double_move,           N+N, false, list);
+        generate_partial_pawn_moves(east_capture &~ RANK8, N+E, false, list);
+        generate_partial_pawn_moves(west_capture &~ RANK8, N+W, false, list);
 }
 
 
@@ -240,12 +258,11 @@ struct MoveList generate_moves(struct Position pos)
         if (checkers)
                 targets &= (popcount(checkers) == 1) ? checkers | line_between[lsb(checkers)][king] : 0;
 
-        generate_pawn_moves(pos, targets, pinned, true, king, &list);
         generate_piece_moves(Bishop, pos, targets, pinned, true, king, &list);
         generate_piece_moves(Rook,   pos, targets, pinned, true, king, &list);
         generate_piece_moves(Queen,  pos, targets, pinned, true, king, &list);
 
-        generate_pawn_moves(pos, targets, ~pinned, false, king, &list);
+        generate_pawn_moves(pos, targets, pinned, king, &list);
         generate_piece_moves(Knight, pos, targets, ~pinned, false, king, &list);
         generate_piece_moves(Bishop, pos, targets, ~pinned, false, king, &list);
         generate_piece_moves(Rook,   pos, targets, ~pinned, false, king, &list);
