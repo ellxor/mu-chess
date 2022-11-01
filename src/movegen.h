@@ -21,7 +21,7 @@ void generate_partial_pawn_moves(bitboard mask, square shift, bool promotion, bo
                 square dst = lsb(mask);
                 square sq  = dst - shift;
 
-                if (pinned && !(line_connecting[king][sq] & mask & -mask)) {
+                if (pinned && !(line_connecting[king][sq] & mask &- mask)) {
                         mask &= mask - 1;
                         continue;
                 }
@@ -126,12 +126,12 @@ void generate_piece_moves(piece T, struct Position pos, bitboard targets, bitboa
 static inline
 bitboard enemy_attacks(struct Position pos, bitboard *out_checkers)
 {
-        bitboard pawns   = extract(pos, Pawn)   & ~pos.white;
-        bitboard knights = extract(pos, Knight) & ~pos.white;
-        bitboard bishops = extract(pos, Bishop) & ~pos.white;
-        bitboard rooks   = extract(pos, Rook)   & ~pos.white;
-        bitboard queens  = extract(pos, Queen)  & ~pos.white;
-        bitboard king    = extract(pos, King)   & ~pos.white;
+        bitboard pawns   = extract(pos, Pawn)   &~ pos.white;
+        bitboard knights = extract(pos, Knight) &~ pos.white;
+        bitboard bishops = extract(pos, Bishop) &~ pos.white;
+        bitboard rooks   = extract(pos, Rook)   &~ pos.white;
+        bitboard queens  = extract(pos, Queen)  &~ pos.white;
+        bitboard king    = extract(pos, King)   &~ pos.white;
 
         bishops |= queens;
         rooks   |= queens;
@@ -268,7 +268,7 @@ void set_square(struct Position *pos, square sq, piece T)
 static inline
 struct Position make_move(struct Position pos, struct Move move)
 {
-        bitboard clear =  1ULL << move.start;
+        bitboard clear  = 1ULL << move.start;
                  clear |= 1ULL << move.end;
 
         bitboard occ = occupied(pos);
