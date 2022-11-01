@@ -124,7 +124,7 @@ void generate_piece_moves(piece T, struct Position pos, bitboard targets, bitboa
 
 
 static inline
-bitboard enemy_attacks(struct Position pos)
+bitboard enemy_attacks(struct Position pos, bitboard *out_checkers)
 {
         bitboard pawns   = extract(pos, Pawn)   & ~pos.white;
         bitboard knights = extract(pos, Knight) & ~pos.white;
@@ -136,61 +136,48 @@ bitboard enemy_attacks(struct Position pos)
         bishops |= queens;
         rooks   |= queens;
 
-        bitboard attacks = 0;
-        bitboard occ = occupied(pos) &~ (extract(pos, King) & pos.white);
-        // allow sliders to move through our king
+        bitboard our_king = extract(pos, King) & pos.white;
+        bitboard checks = north(east(our_king) | west(our_king)) & pawns;
 
-        attacks |= south(east(pawns));
-        attacks |= south(west(pawns));
+        bitboard attacked = 0;
+        bitboard occ = occupied(pos) &~ our_king; // allow sliders to move through our king
+
+        attacked |= south(east(pawns));
+        attacked |= south(west(pawns));
 
         while (knights) {
-                attacks |= knight_attacks(lsb(knights));
-                knights &= knights - 1;
+                bitboard attacks = knight_attacks(lsb(knights));
+                checks   |= attacks & our_king ? knights &- knights : 0;
+                attacked |= attacks;
+                knights  &= knights - 1;
         }
 
         while (bishops) {
-                attacks |= bishop_attacks(lsb(bishops), occ);
-                bishops &= bishops - 1;
+                bitboard attacks = bishop_attacks(lsb(bishops), occ);
+                checks   |= attacks & our_king ? bishops &- bishops : 0;
+                attacked |= attacks;
+                bishops  &= bishops - 1;
         }
 
         while (rooks) {
-                attacks |= rook_attacks(lsb(rooks), occ);
-                rooks   &= rooks - 1;
+                bitboard attacks = rook_attacks(lsb(rooks), occ);
+                checks   |= attacks & our_king ? rooks &- rooks : 0;
+                attacked |= attacks;
+                rooks    &= rooks - 1;
         }
 
-        attacks |= king_attacks(lsb(king));
-        return attacks;
+        attacked |= king_attacks(lsb(king));
+
+        *out_checkers = checks;
+        return attacked;
 }
 
 
 static inline
-bitboard enemy_checks(struct Position pos, square king)
+void generate_king_moves(struct Position pos, bitboard attacked, square king, struct MoveList *list)
 {
         bitboard occ     = occupied(pos);
-        bitboard pawns   = extract(pos, Pawn)   & ~pos.white;
-        bitboard knights = extract(pos, Knight) & ~pos.white;
-        bitboard bishops = extract(pos, Bishop) & ~pos.white;
-        bitboard rooks   = extract(pos, Rook)   & ~pos.white;
-        bitboard queens  = extract(pos, Queen)  & ~pos.white;
-
-        bishops |= queens;
-        rooks   |= queens;
-
-        pawns   &= north(east(1ULL << king) | west(1ULL << king));
-        knights &= knight_attacks(king);
-        bishops &= bishop_attacks(king, occ);
-        rooks   &= rook_attacks(king, occ);
-
-        return pawns | knights | bishops | rooks;
-}
-
-
-static inline
-void generate_king_moves(struct Position pos, square king, struct MoveList *list)
-{
-        bitboard occ      = occupied(pos);
-        bitboard attacked = enemy_attacks(pos);
-        bitboard attacks  = king_attacks(king) &~ attacked &~ (pos.white & occ);
+        bitboard attacks = king_attacks(king) &~ attacked &~ (pos.white & occ);
 
         while (attacks) {
                 square sq = lsb(attacks);
@@ -242,7 +229,9 @@ struct MoveList generate_moves(struct Position pos)
         struct MoveList list = {.count = 0};
 
         square king = lsb(extract(pos, King) & pos.white);
-        bitboard checkers = enemy_checks(pos, king);
+
+        bitboard checkers;
+        bitboard attacked = enemy_attacks(pos, &checkers);
 
         bitboard targets = ~(occupied(pos) & pos.white);
         bitboard pinned = generate_pinned(pos, king);
@@ -261,7 +250,7 @@ struct MoveList generate_moves(struct Position pos)
         generate_piece_moves(Bishop, pos, targets, ~pinned, false, king, &list);
         generate_piece_moves(Rook,   pos, targets, ~pinned, false, king, &list);
         generate_piece_moves(Queen,  pos, targets, ~pinned, false, king, &list);
-        generate_king_moves(pos, king, &list);
+        generate_king_moves(pos, attacked, king, &list);
 
         return list;
 }
