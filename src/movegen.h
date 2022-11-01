@@ -154,7 +154,6 @@ bitboard enemy_attacks(struct Position pos, bitboard *out_checkers)
         bishops |= queens;
         rooks   |= queens;
 
-
         bitboard our_king = extract(pos, King) & pos.white;
         bitboard occ = occupied(pos) &~ our_king; // allow sliders to move through our king
 
