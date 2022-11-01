@@ -136,19 +136,21 @@ bitboard enemy_attacks(struct Position pos, bitboard *out_checkers)
         bishops |= queens;
         rooks   |= queens;
 
+
         bitboard our_king = extract(pos, King) & pos.white;
-        bitboard checks = north(east(our_king) | west(our_king)) & pawns;
+        bitboard occ = occupied(pos) &~ our_king; // allow sliders to move through our king
 
         bitboard attacked = 0;
-        bitboard occ = occupied(pos) &~ our_king; // allow sliders to move through our king
 
         attacked |= south(east(pawns));
         attacked |= south(west(pawns));
+        attacked |= king_attacks(lsb(king));
+
+        bitboard checks = pawns & north(east(our_king) | west(our_king));
+        checks |= knights & knight_attacks(lsb(our_king));
 
         while (knights) {
-                bitboard attacks = knight_attacks(lsb(knights));
-                checks   |= attacks & our_king ? knights &- knights : 0;
-                attacked |= attacks;
+                attacked |= knight_attacks(lsb(knights));
                 knights  &= knights - 1;
         }
 
@@ -165,8 +167,6 @@ bitboard enemy_attacks(struct Position pos, bitboard *out_checkers)
                 attacked |= attacks;
                 rooks    &= rooks - 1;
         }
-
-        attacked |= king_attacks(lsb(king));
 
         *out_checkers = checks;
         return attacked;
