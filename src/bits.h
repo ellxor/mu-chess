@@ -31,7 +31,6 @@ static inline bitboard rank(square sq) { return RANK1 << (sq & 56); }
 
 static inline bitboard    bswap(bitboard bb) { return    __builtin_bswap64(bb); }
 static inline square        lsb(bitboard bb) { return           _tzcnt_u64(bb); }
-static inline bitboard      msb(bitboard bb) { return  MSB64 >> _lzcnt_u64(bb); }
 static inline unsigned popcount(bitboard bb) { return __builtin_popcountll(bb); }
 static inline bitboard     pext(bitboard a, bitboard b) { return _pext_u64(a, b); }
 

@@ -45,7 +45,8 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard pinned,
         bitboard en_passant = pos.white &~ occ;
         bitboard candidates = south(east(en_passant) | west(en_passant)) & pawns;
 
-        if (popcount(candidates) == 1) {
+        if (popcount(candidates) == 1)
+        {
                 bitboard rooks  = extract(pos, Rook)  &~ pos.white;
                 bitboard queens = extract(pos, Queen) &~ pos.white;
 
@@ -232,7 +233,10 @@ bitboard generate_pinned(struct Position pos, square king)
 
         while (candidates) {
                 bitboard line = line_between[king][lsb(candidates)] & occ;
-                pinned |= msb(line) &- line;
+
+                if (popcount(line) == 1)
+                        pinned |= line;
+
                 candidates &= candidates - 1;
         }
 
