@@ -1,5 +1,5 @@
 CC       = clang
-CFLAGS   = -O3 -march=native -s -o perft
+CFLAGS   = -O3 -march=native -s -o perft -flto=full -fuse-ld=lld
 WARNINGS = -Wall -Wextra
 SRC      = src/main.c
 
