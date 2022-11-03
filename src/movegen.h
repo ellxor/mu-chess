@@ -36,7 +36,8 @@ void generate_partial_pawn_moves(bitboard mask, square shift, bool promotion, st
 
 
 static inline
-void generate_pawn_moves(struct Position pos, bitboard targets, bitboard pinned, square king, struct MoveList *list)
+void generate_pawn_moves(struct Position pos, bitboard targets, bitboard pinned, square king,
+                         struct MoveList *list)
 {
         bitboard pawns = extract(pos, Pawn) & pos.white;
         bitboard occ   = occupied(pos);
@@ -45,6 +46,7 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard pinned,
         bitboard en_passant = pos.white &~ occ;
         bitboard candidates = south(east(en_passant) | west(en_passant)) & pawns;
 
+        // check that en-passant doesn't allow check (not pinned as two horizontal blockers)
         if (popcount(candidates) == 1)
         {
                 bitboard rooks  = extract(pos, Rook)  &~ pos.white;
@@ -57,6 +59,7 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard pinned,
                         en_passant = 0;
         }
 
+        // allow en-passant if pawn is giving check
         targets |= en_passant & north(targets);
         enemy   |= en_passant;
 
@@ -82,6 +85,7 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard pinned,
         bitboard pinned_east_capture = north(east(pinned)) & enemy & targets;
         bitboard pinned_west_capture = north(west(pinned)) & enemy & targets;
 
+        // make sure pinned pawn moves are aligned with king
         pinned_east_capture &= bishop_attacks(king, 0);
         pinned_west_capture &= bishop_attacks(king, 0);
         pinned_single_move  &= file(king);
@@ -119,7 +123,8 @@ bitboard generic_attacks(piece T, square sq, bitboard occ)
 
 
 static inline
-void generate_piece_moves(piece T, struct Position pos, bitboard targets, bitboard filter, bool pinned, square king, struct MoveList *list)
+void generate_piece_moves(piece T, struct Position pos, bitboard targets, bitboard filter,
+                          bool pinned, square king, struct MoveList *list)
 {
         bitboard pieces = extract(pos, T) & pos.white & filter;
         bitboard occ    = occupied(pos);
@@ -157,11 +162,15 @@ void generate_king_moves(struct Position pos, bitboard attacked, square king, st
         // castling
         bitboard castle = extract(pos, Castle) & RANK1;
 
+        // queen/king-side attacked and occupancy masks
         static const bitboard KATTK = 0b01110000, KOCC = 0b01100000;
         static const bitboard QATTK = 0b00011100, QOCC = 0b00001110;
 
-        if (castle & (1 << A1) && !(occ & QOCC) && !(attacked & QATTK)) append(list, (struct Move) { E1, C1, King, true });
-        if (castle & (1 << H1) && !(occ & KOCC) && !(attacked & KATTK)) append(list, (struct Move) { E1, G1, King, true });
+        static const struct Move queenside = { E1, C1, King, true };
+        static const struct Move  kingside = { E1, G1, King ,true };
+
+        if (castle & (1 << A1) && !(occ & QOCC) && !(attacked & QATTK)) append(list, queenside);
+        if (castle & (1 << H1) && !(occ & KOCC) && !(attacked & KATTK)) append(list,  kingside);
 }
 
 
@@ -179,7 +188,10 @@ bitboard enemy_attacks(struct Position pos, bitboard *out_checkers)
         rooks   |= queens;
 
         bitboard our_king = extract(pos, King) & pos.white;
-        bitboard occ = occupied(pos) &~ our_king; // allow sliders to move through our king
+        bitboard occ = occupied(pos) &~ our_king;
+
+        // ^ allow sliders to move through our king - this prevents our
+        // king from walking along the checking direction
 
         bitboard attacked = 0, checks = 0;
 
@@ -256,10 +268,14 @@ struct MoveList generate_moves(struct Position pos)
         bitboard targets  = ~(pos.white & occupied(pos));
         bitboard pinned   = generate_pinned(pos, king);
 
-        // if in check from more than one piece, can only move king
+        // if in check from more than one piece, can only move king,
+        // otherwise we must block the check, or capture the checking piece
         if (checkers)
-                targets &= (popcount(checkers) == 1) ? checkers | line_between[lsb(checkers)][king] : 0;
+                targets &= (popcount(checkers) == 1)
+                        ?  checkers | line_between[king][lsb(checkers)]
+                        : 0;
 
+        // pinned knights can never move
         generate_piece_moves(Bishop, pos, targets, pinned, true, king, &list);
         generate_piece_moves(Rook,   pos, targets, pinned, true, king, &list);
         generate_piece_moves(Queen,  pos, targets, pinned, true, king, &list);
@@ -276,25 +292,16 @@ struct MoveList generate_moves(struct Position pos)
 
 
 static inline
-void set_square(struct Position *pos, square sq, piece T)
-{
-        pos->x |= (bitboard)((T >> 0) & 1) << sq;
-        pos->y |= (bitboard)((T >> 1) & 1) << sq;
-        pos->z |= (bitboard)((T >> 2) & 1) << sq;
-}
-
-
-static inline
 struct Position make_move(struct Position pos, struct Move move)
 {
         bitboard clear  = 1ULL << move.start;
                  clear |= 1ULL << move.end;
 
         bitboard occ = occupied(pos);
-        bitboard ep_mask = pos.white &~ occ;
+        bitboard en_passant = pos.white &~ occ;
 
         if (move.piece == Pawn)
-                clear |= south(ep_mask & clear);
+                clear |= south(en_passant & clear);
 
         if (move.castling)
                 clear |= (move.end < move.start) ? (1 << A1) : (1 << H1);
@@ -304,18 +311,17 @@ struct Position make_move(struct Position pos, struct Move move)
         pos.z     &= ~clear;
         pos.white &= ~clear;
 
-        pos.white |= 1ULL << move.end;
         set_square(&pos, move.end, move.piece);
+        pos.white |= 1ULL << move.end;
 
         if (move.castling) {
                 square mid = (move.start + move.end) >> 1;
-                pos.white |= 1ULL << mid;
                 set_square(&pos, mid, Rook);
+                pos.white |= 1ULL << mid;
         }
 
-        // remove castling rights
         if (move.piece == King)
-                pos.x ^= extract(pos, Castle) & RANK1;
+                pos.x ^= extract(pos, Castle) & RANK1; // remove castling rights
 
         bitboard black = occupied(pos) &~ pos.white;
 

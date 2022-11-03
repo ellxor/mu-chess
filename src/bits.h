@@ -50,6 +50,14 @@ bitboard extract(struct Position pos, piece T)
         return bb;
 }
 
+static inline
+void set_square(struct Position *pos, square sq, piece T)
+{
+        pos->x |= (bitboard)((T >> 0) & 1) << sq;
+        pos->y |= (bitboard)((T >> 1) & 1) << sq;
+        pos->z |= (bitboard)((T >> 2) & 1) << sq;
+}
+
 
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 #define INCBIN_PREFIX
