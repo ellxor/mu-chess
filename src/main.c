@@ -39,6 +39,7 @@ static const struct UnitTest tests[] =
         { .name = "rotated 4",  .fen = "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ -",        .depth = 6 },
         { .name = "position 5", .fen = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ -",               .depth = 5 },
         { .name = "position 6", .fen = "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - -", .depth = 5 },
+        { .name = "promotions", .fen = "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - -",                                 .depth = 6 },
 };
 
 
