@@ -160,15 +160,13 @@ void generate_king_moves(struct Position pos, bitboard attacked, square king, st
                 attacks &= attacks - 1;
         }
 
-        // castling
+        // castling rights
         bitboard castle = extract(pos, Castle) & RANK1;
 
-        // queen/king-side attacked and occupancy masks
-        static const bitboard KATTK = 0b01110000, KOCC = 0b01100000;
-        static const bitboard QATTK = 0b00011100, QOCC = 0b00001110;
+        enum : bitboard { QOCC = 14, QATTK = 28, KOCC = 96, KATTK = 112 };
 
-        static const struct Move queenside = { E1, C1, King, true };
-        static const struct Move  kingside = { E1, G1, King ,true };
+        static struct Move queenside = { E1, C1, King, true },
+                            kingside = { E1, G1, King ,true };
 
         if (castle & (1 << A1) && !(occ & QOCC) && !(attacked & QATTK)) append(list, queenside);
         if (castle & (1 << H1) && !(occ & KOCC) && !(attacked & KATTK)) append(list,  kingside);
