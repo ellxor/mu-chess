@@ -36,7 +36,7 @@ void generate_partial_pawn_moves(bitboard mask, square shift, bool promotion, st
 
 
 static inline
-void generate_pawn_moves(struct Position pos, bitboard targets, bitboard pinned, square king,
+void generate_pawn_moves(struct Position pos, bitboard targets, bitboard _pinned, square king,
                          struct MoveList *list)
 {
         bitboard pawns = extract(pos, Pawn) & pos.white;
@@ -46,8 +46,9 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard pinned,
         bitboard en_passant = pos.white &~ occ;
         bitboard candidates = south(east(en_passant) | west(en_passant)) & pawns;
 
-        // check that en-passant doesn't allow check (not pinned as two horizontal blockers)
-        if (popcount(candidates) == 1)
+        // check that en-passant doesn't allow horizontal check (not pinned as two blockers)
+        // note: this only happens when the king is on the 5th rank
+        if ((king >> 3) == 4 && popcount(candidates) == 1)
         {
                 bitboard rooks  = extract(pos, Rook)  &~ pos.white;
                 bitboard queens = extract(pos, Queen) &~ pos.white;
@@ -63,9 +64,9 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard pinned,
         targets |= en_passant & north(targets);
         enemy   |= en_passant;
 
-        pinned &= pawns;
-        pawns  &= ~pinned;
-        pinned &= ~rank(king);
+        // pinned pawns on the king rank can never move
+        bitboard pinned = pawns & _pinned & ~rank(king);
+        pawns &= ~_pinned;
 
         bitboard single_move = north(pawns) &~ occ;
         bitboard double_move = north(single_move & RANK3) &~ occ;
