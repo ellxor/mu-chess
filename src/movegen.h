@@ -166,7 +166,7 @@ void generate_king_moves(struct Position pos, bitboard attacked, square king, st
         enum : bitboard { QOCC = 14, QATTK = 28, KOCC = 96, KATTK = 112 };
 
         static struct Move queenside = { E1, C1, King, true },
-                            kingside = { E1, G1, King ,true };
+                            kingside = { E1, G1, King, true };
 
         if (castle & (1 << A1) && !(occ & QOCC) && !(attacked & QATTK)) append(list, queenside);
         if (castle & (1 << H1) && !(occ & KOCC) && !(attacked & KATTK)) append(list,  kingside);

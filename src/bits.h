@@ -19,7 +19,6 @@ static const bitboard HFILE = 0x8080808080808080;
 static const bitboard RANK1 = 0x00000000000000ff;
 static const bitboard RANK3 = 0x0000000000ff0000;
 static const bitboard RANK8 = 0xff00000000000000;
-static const bitboard MSB64 = 0x8000000000000000;
 
 static inline bitboard north(bitboard bb) { return bb << 8; }
 static inline bitboard south(bitboard bb) { return bb >> 8; }
