@@ -2,8 +2,9 @@
 #include "bits.h"
 #include "movegen.h"
 
+
 static inline
-unsigned count_pawn_moves(struct Position pos, bitboard targets, bitboard pinned, square king)
+unsigned count_pawn_moves(struct Position pos, bitboard targets, bitboard _pinned, square king)
 {
         bitboard pawns = extract(pos, Pawn) & pos.white;
         bitboard occ   = occupied(pos);
@@ -12,7 +13,10 @@ unsigned count_pawn_moves(struct Position pos, bitboard targets, bitboard pinned
         bitboard en_passant = pos.white &~ occ;
         bitboard candidates = south(east(en_passant) | west(en_passant)) & pawns;
 
-        if (popcount(candidates) == 1) {
+        // check that en-passant doesn't allow horizontal check (not pinned as two blockers)
+        // note: this only happens when the king is on the 5th rank
+        if ((king >> 3) == 4 && popcount(candidates) == 1)
+        {
                 bitboard rooks  = extract(pos, Rook)  &~ pos.white;
                 bitboard queens = extract(pos, Queen) &~ pos.white;
 
@@ -23,12 +27,13 @@ unsigned count_pawn_moves(struct Position pos, bitboard targets, bitboard pinned
                         en_passant = 0;
         }
 
+        // allow en-passant if pawn is giving check
         targets |= en_passant & north(targets);
         enemy   |= en_passant;
 
-        pinned &= pawns;
-        pawns  &= ~pinned;
-        pinned &= ~rank(king);
+        // pinned pawns on the king rank can never move
+        bitboard pinned = pawns & _pinned & ~rank(king);
+        pawns &= ~_pinned;
 
         bitboard single_move = north(pawns) &~ occ;
         bitboard double_move = north(single_move & RANK3) &~ occ;
@@ -48,6 +53,7 @@ unsigned count_pawn_moves(struct Position pos, bitboard targets, bitboard pinned
         bitboard pinned_east_capture = north(east(pinned)) & enemy & targets;
         bitboard pinned_west_capture = north(west(pinned)) & enemy & targets;
 
+        // make sure pinned pawn moves are aligned with king
         pinned_east_capture &= bishop_attacks(king, 0);
         pinned_west_capture &= bishop_attacks(king, 0);
         pinned_single_move  &= file(king);
@@ -76,7 +82,8 @@ unsigned count_pawn_moves(struct Position pos, bitboard targets, bitboard pinned
 
 
 static inline
-unsigned count_piece_moves(piece T, struct Position pos, bitboard targets, bitboard filter, bool pinned, square king)
+unsigned count_piece_moves(piece T, struct Position pos, bitboard targets, bitboard filter,
+                          bool pinned, square king)
 {
         bitboard pieces = extract(pos, T) & pos.white & filter;
         bitboard occ    = occupied(pos);
@@ -106,14 +113,13 @@ unsigned count_king_moves(struct Position pos, bitboard attacked, square king)
 
         unsigned count = popcount(attacks);
 
-        // castling
+        // castling rights
         bitboard castle = extract(pos, Castle) & RANK1;
 
-        static const bitboard KATTK = 0b01110000, KOCC = 0b01100000;
-        static const bitboard QATTK = 0b00011100, QOCC = 0b00001110;
+        enum : bitboard { QOCC = 14, QATTK = 28, KOCC = 96, KATTK = 112 };
 
-        if (castle & (1 << A1) && !(occ & QOCC) && !(attacked & QATTK)) count++;
-        if (castle & (1 << H1) && !(occ & KOCC) && !(attacked & KATTK)) count++;
+        count += (castle & (1 << A1) && !(occ & QOCC) && !(attacked & QATTK));
+        count += (castle & (1 << H1) && !(occ & KOCC) && !(attacked & KATTK));
 
         return count;
 }
@@ -126,16 +132,19 @@ unsigned count_moves(struct Position pos)
 
         bitboard checkers;
         bitboard attacked = enemy_attacks(pos, &checkers);
+        bitboard targets  = ~(pos.white & occupied(pos));
+        bitboard pinned   = generate_pinned(pos, king);
 
-        bitboard targets = ~(occupied(pos) & pos.white);
-        bitboard pinned = generate_pinned(pos, king);
-
-        // if in check from more than one piece, can only move king
+        // if in check from more than one piece, can only move king,
+        // otherwise we must block the check, or capture the checking piece
         if (checkers)
-                targets &= (popcount(checkers) == 1) ? checkers | line_between[lsb(checkers)][king] : 0;
+                targets &= (popcount(checkers) == 1)
+                        ?  checkers | line_between[king][lsb(checkers)]
+                        : 0;
 
         unsigned count = 0;
 
+        // pinned knights can never move
         count += count_piece_moves(Bishop, pos, targets, pinned, true, king);
         count += count_piece_moves(Rook,   pos, targets, pinned, true, king);
         count += count_piece_moves(Queen,  pos, targets, pinned, true, king);
