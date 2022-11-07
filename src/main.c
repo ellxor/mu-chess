@@ -1,9 +1,9 @@
+#include <stdio.h>
+#include <time.h>
+
 #include "bits.h"
 #include "movegen.h"
 #include "uci.h"
-
-#include <stdio.h>
-#include <time.h>
 
 
 static inline

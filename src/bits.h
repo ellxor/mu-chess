@@ -65,11 +65,9 @@ void set_square(struct Position *pos, square sq, piece T)
 INCBIN(bitboard, bitbase, "data/bitbase.bin");
 static struct { bitboard mask; const bitboard *attacks; } bishop[64], rook[64];
 
-static bitboard line_between[64][64];
-static bitboard line_connecting[64][64];
-
-static inline bitboard knight_attacks(square sq) { return bitbase_data[sq]; }
-static inline bitboard   king_attacks(square sq) { return bitbase_data[sq + 64]; }
+static inline bitboard knight_attacks(square sq) {
+        return bitbase_data[sq];
+}
 
 static inline bitboard bishop_attacks(square sq, bitboard occ) {
         return bishop[sq].attacks[pext(occ, bishop[sq].mask)];
@@ -79,39 +77,17 @@ static inline bitboard rook_attacks(square sq, bitboard occ) {
         return rook[sq].attacks[pext(occ, rook[sq].mask)];
 }
 
-
-static inline
-bitboard __line_between(bitboard a, bitboard b)
-{
-        square sqa = lsb(a);
-        square sqb = lsb(b);
-
-        bitboard diag = bishop_attacks(sqa, b);
-        bitboard orth = rook_attacks(sqa, b);
-
-        bitboard line = 0;
-        if (diag & b) line |= bishop_attacks(sqb, a) & diag;
-        if (orth & b) line |= rook_attacks(sqb, a)   & orth;
-
-        return line;
+static inline bitboard king_attacks(square sq) {
+        return bitbase_data[sq + 64];
 }
 
-static inline
-bitboard __line_connecting(bitboard a, bitboard b)
-{
-        square sqa = lsb(a);
-        square sqb = lsb(b);
-
-        bitboard diag = a | bishop_attacks(sqa, 0);
-        bitboard orth = a | rook_attacks(sqa, 0);
-
-        bitboard line = 0;
-        if (diag & b) line |= b | (bishop_attacks(sqb, 0) & diag);
-        if (orth & b) line |= b | (rook_attacks(sqb, 0)   & orth);
-
-        return line;
+static inline bitboard line_between(square a, square b) {
+        return bitbase_data[107904 + 64*a + b];
 }
 
+static inline bitboard line_connecting(square a, square b) {
+        return bitbase_data[112000 + 64*a + b];
+}
 
 static inline
 void bitbase_init(void)
@@ -126,12 +102,5 @@ void bitbase_init(void)
                 rook[sq].mask = bitbase_data[index++];
                 rook[sq].attacks = bitbase_data + index;
                 index += 1 << popcount(rook[sq].mask);
-        }
-
-        for (square i = 0; i < 64; i++) {
-                for (square j = 0; j < 64; j++) {
-                        line_between[i][j] = __line_between(1ULL << i, 1ULL << j);
-                        line_connecting[i][j] = __line_connecting(1ULL << i, 1ULL << j);
-                }
         }
 }

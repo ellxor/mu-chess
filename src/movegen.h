@@ -135,7 +135,7 @@ void generate_piece_moves(piece T, struct Position pos, bitboard targets, bitboa
                 bitboard attacks = generic_attacks(T, sq, occ) & targets;
 
                 if (pinned)
-                        attacks &= line_connecting[king][sq];
+                        attacks &= line_connecting(king, sq);
 
                 while (attacks) {
                         square dst = lsb(attacks);
@@ -243,7 +243,7 @@ bitboard generate_pinned(struct Position pos, square king)
         bitboard candidates = bishops | rooks;
 
         while (candidates) {
-                bitboard line = line_between[king][lsb(candidates)] & occ;
+                bitboard line = line_between(king, lsb(candidates)) & occ;
 
                 if (popcount(line) == 1)
                         pinned |= line;
@@ -271,7 +271,7 @@ struct MoveList generate_moves(struct Position pos)
         // otherwise we must block the check, or capture the checking piece
         if (checkers)
                 targets &= (popcount(checkers) == 1)
-                        ?  checkers | line_between[king][lsb(checkers)]
+                        ?  checkers | line_between(king, lsb(checkers))
                         : 0;
 
         // pinned knights can never move
