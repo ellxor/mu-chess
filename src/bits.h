@@ -24,9 +24,7 @@ static inline bitboard north(bitboard bb) { return bb << 8; }
 static inline bitboard south(bitboard bb) { return bb >> 8; }
 static inline bitboard  east(bitboard bb) { return (bb &~ HFILE) << 1; }
 static inline bitboard  west(bitboard bb) { return (bb &~ AFILE) >> 1; }
-
-static inline bitboard file(square sq) { return AFILE << (sq &  7); }
-static inline bitboard rank(square sq) { return RANK1 << (sq & 56); }
+static inline bitboard  file(square   sq) { return AFILE << (sq &  7); }
 
 static inline bitboard    bswap(bitboard bb) { return    __builtin_bswap64(bb); }
 static inline square        lsb(bitboard bb) { return           _tzcnt_u64(bb); }
