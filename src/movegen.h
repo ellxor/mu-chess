@@ -65,13 +65,13 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard _pinned
         enemy   |= en_passant;
 
         // pinned pawns on the king rank can never move
-        bitboard pinned = pawns & _pinned & ~rank(king);
+        bitboard pinned = pawns & _pinned &~ rank(king);
         pawns &= ~_pinned;
 
         bitboard single_move = north(pawns) &~ occ;
         bitboard double_move = north(single_move & RANK3) &~ occ;
 
-        bitboard pinned_single_move = north(pinned) &~ occ;
+        bitboard pinned_single_move = north(pinned) & file(king) &~ occ;
         bitboard pinned_double_move = north(pinned_single_move & RANK3) &~ occ;
 
         single_move &= targets;
@@ -80,17 +80,18 @@ void generate_pawn_moves(struct Position pos, bitboard targets, bitboard _pinned
         pinned_single_move &= targets;
         pinned_double_move &= targets;
 
+        // prevent illegal captures from behind king
+        pinned &= ~file(king);
+
         bitboard east_capture = north(east(pawns)) & enemy & targets;
         bitboard west_capture = north(west(pawns)) & enemy & targets;
 
         bitboard pinned_east_capture = north(east(pinned)) & enemy & targets;
         bitboard pinned_west_capture = north(west(pinned)) & enemy & targets;
 
-        // make sure pinned pawn moves are aligned with king
+        // make sure pinned captures are aligned to king
         pinned_east_capture &= bishop_attacks(king, 0);
         pinned_west_capture &= bishop_attacks(king, 0);
-        pinned_single_move  &= file(king);
-        pinned_double_move  &= file(king);
 
         single_move  |= pinned_single_move;
         double_move  |= pinned_double_move;
