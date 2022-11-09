@@ -264,15 +264,14 @@ struct MoveList generate_moves(struct Position pos)
 
         bitboard checkers;
         bitboard attacked = enemy_attacks(pos, &checkers);
-        bitboard targets  = ~(pos.white & occupied(pos));
         bitboard pinned   = generate_pinned(pos, king);
+        bitboard targets  = ~(occupied(pos) & pos.white);
 
         // if in check from more than one piece, can only move king,
         // otherwise we must block the check, or capture the checking piece
         if (checkers)
                 targets &= (popcount(checkers) == 1)
-                        ?  checkers | line_between(king, lsb(checkers))
-                        : 0;
+                        ? checkers | line_between(king, lsb(checkers)) : 0;
 
         // pinned knights can never move
         generate_piece_moves(Bishop, pos, targets, pinned, true, king, &list);
@@ -314,7 +313,7 @@ struct Position make_move(struct Position pos, struct Move move)
         pos.white |= 1ULL << move.end;
 
         if (move.castling) {
-                square mid = (move.start + move.end) >> 1;
+                square mid = (move.end + move.start) >> 1;
                 set_square(&pos, mid, Rook);
                 pos.white |= 1ULL << mid;
         }
